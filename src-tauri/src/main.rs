@@ -2,6 +2,8 @@
 
 #[cfg(windows)]
 mod pty;
+#[cfg(windows)]
+mod pane;
 mod stream_json;
 mod claude_state;
 
