@@ -22,7 +22,7 @@ use windows::{
             Threading::{
                 CreateProcessW, DeleteProcThreadAttributeList, InitializeProcThreadAttributeList,
                 UpdateProcThreadAttribute, WaitForSingleObject, EXTENDED_STARTUPINFO_PRESENT,
-                PROCESS_INFORMATION, PROC_THREAD_ATTRIBUTE_LIST, STARTUPINFOEXW, STARTUPINFOW,
+                LPPROC_THREAD_ATTRIBUTE_LIST, PROCESS_INFORMATION, STARTUPINFOEXW, STARTUPINFOW,
             },
         },
     },
@@ -110,7 +110,7 @@ impl Pty {
             // First call: query required buffer size.
             let mut attr_list_size: usize = 0;
             let _ = InitializeProcThreadAttributeList(
-                PROC_THREAD_ATTRIBUTE_LIST(ptr::null_mut()),
+                LPPROC_THREAD_ATTRIBUTE_LIST(ptr::null_mut()),
                 1,
                 0,
                 &mut attr_list_size,
@@ -119,7 +119,7 @@ impl Pty {
             // Allocate the buffer as a plain Vec<u8> so we control its lifetime.
             let mut attr_list_buf: Vec<u8> = vec![0u8; attr_list_size];
             let attr_list =
-                PROC_THREAD_ATTRIBUTE_LIST(attr_list_buf.as_mut_ptr() as *mut _);
+                LPPROC_THREAD_ATTRIBUTE_LIST(attr_list_buf.as_mut_ptr() as *mut _);
 
             InitializeProcThreadAttributeList(attr_list, 1, 0, &mut attr_list_size).map_err(
                 |e| {

@@ -16,7 +16,7 @@ mod tray;
 mod commands {
     use std::io::Read;
 
-    use tauri::{AppHandle, Manager};
+    use tauri::{AppHandle, Emitter, Manager};
 
     use crate::pane::{self, PaneInfo, PaneType, SharedPaneManager};
 
