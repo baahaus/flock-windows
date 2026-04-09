@@ -3,6 +3,7 @@
 #[cfg(windows)]
 mod pty;
 mod stream_json;
+mod claude_state;
 
 fn main() {
     tauri::Builder::default()
