@@ -6,6 +6,7 @@ mod pty;
 mod pane;
 mod stream_json;
 mod claude_state;
+mod tray;
 
 // ---------------------------------------------------------------------------
 // Windows-only Tauri commands
@@ -217,9 +218,28 @@ fn main() {
             commands::resize_pane,
             commands::list_panes,
         ])
-        .setup(|_app| {
+        .setup(|app| {
             #[cfg(windows)]
-            _app.manage(manager);
+            app.manage(manager);
+
+            // Register Ctrl+` global hotkey to toggle window visibility.
+            use tauri::Manager;
+            use tauri_plugin_global_shortcut::GlobalShortcutExt;
+            app.global_shortcut().on_shortcut("Ctrl+`", |app, _shortcut, _event| {
+                if let Some(win) = app.get_webview_window("main") {
+                    let visible: bool = win.is_visible().unwrap_or(false);
+                    if visible {
+                        let _ = win.hide();
+                    } else {
+                        let _ = win.show();
+                        let _ = win.set_focus();
+                    }
+                }
+            })?;
+
+            // Set up system tray icon and menu.
+            tray::setup_tray(app.handle())?;
+
             Ok(())
         })
         .run(tauri::generate_context!())
