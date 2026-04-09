@@ -1,0 +1,10 @@
+{
+  "identifier": "default",
+  "description": "Default capabilities for Flock",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "global-shortcut:allow-register",
+    "global-shortcut:allow-unregister"
+  ]
+}
