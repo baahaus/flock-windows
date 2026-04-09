@@ -243,6 +243,14 @@ impl Pty {
             .map_err(|e| format!("read_output failed: {e}"))
     }
 
+    /// Clone the output read handle so a background thread can read PTY output
+    /// without holding the pane manager lock.
+    pub fn try_clone_output(&self) -> Result<File, String> {
+        self.output_read
+            .try_clone()
+            .map_err(|e| format!("try_clone_output failed: {e}"))
+    }
+
     /// Terminate the child process and release all ConPTY resources.
     pub fn kill(&mut self) {
         unsafe {
