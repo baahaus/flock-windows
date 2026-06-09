@@ -1,6 +1,8 @@
-export interface PaneEntry {
+export interface TabEntry {
   id: number;
-  type: "claude" | "shell";
+  label: string;
+  color?: string;
+  busy: boolean;
 }
 
 export interface TabBarCallbacks {
@@ -21,27 +23,38 @@ export class TabBar {
     this.callbacks = callbacks;
   }
 
-  update(panes: PaneEntry[], activeId: number | null): void {
+  update(panes: TabEntry[], activeId: number | null): void {
     this.element.innerHTML = "";
 
     for (const pane of panes) {
       const tab = document.createElement("button");
       tab.className = "tab" + (pane.id === activeId ? " tab-active" : "");
 
+      if (pane.color) {
+        const dot = document.createElement("span");
+        dot.className = "tab-cli-dot";
+        dot.style.background = pane.color;
+        tab.appendChild(dot);
+      }
+
       const label = document.createElement("span");
-      label.textContent = pane.type === "claude" ? `Claude ${pane.id}` : `Shell ${pane.id}`;
+      label.textContent = pane.label;
+      tab.appendChild(label);
+
+      if (pane.busy) {
+        const busy = document.createElement("span");
+        busy.className = "tab-busy-dot";
+        tab.appendChild(busy);
+      }
 
       const closeBtn = document.createElement("span");
       closeBtn.className = "tab-close";
       closeBtn.textContent = "x";
       closeBtn.title = "Close pane";
-
       closeBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         this.callbacks.onClose(pane.id);
       });
-
-      tab.appendChild(label);
       tab.appendChild(closeBtn);
 
       tab.addEventListener("click", () => {
@@ -51,14 +64,12 @@ export class TabBar {
       this.element.appendChild(tab);
     }
 
-    // Add Claude button
     const addClaude = document.createElement("button");
     addClaude.className = "tab-add";
     addClaude.textContent = "+ Claude";
     addClaude.addEventListener("click", () => this.callbacks.onNewClaude());
     this.element.appendChild(addClaude);
 
-    // Add Shell button
     const addShell = document.createElement("button");
     addShell.className = "tab-add";
     addShell.textContent = "+ Shell";

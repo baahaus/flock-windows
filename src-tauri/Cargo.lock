@@ -767,7 +767,7 @@ dependencies = [
 
 [[package]]
 name = "flock"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "regex",
  "serde",
@@ -776,7 +776,9 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-global-shortcut",
  "tokio",
+ "webview2-com",
  "windows 0.58.0",
+ "windows-core 0.61.2",
 ]
 
 [[package]]

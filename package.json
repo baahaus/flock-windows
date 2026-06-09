@@ -1,6 +1,6 @@
 {
   "name": "flock-windows",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Flock for Windows - Claude Code terminal multiplexer",
   "private": true,
   "scripts": {
@@ -12,12 +12,13 @@
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
-    "vite": "^5",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite": "^5"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
     "@xterm/addon-fit": "^0.10.0",
+    "@xterm/addon-search": "^0.16.0",
     "@xterm/xterm": "^5.5.0"
   }
 }

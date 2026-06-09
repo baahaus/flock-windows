@@ -19,11 +19,12 @@ use crate::stream_json::StreamJsonParser;
 // Public types
 // ---------------------------------------------------------------------------
 
-/// Whether a pane is running the Claude CLI or a plain shell.
+/// Whether a pane is running the Claude CLI, another agent CLI, or a plain shell.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum PaneType {
     Claude,
+    Agent,
     Shell,
 }
 
@@ -71,19 +72,32 @@ impl PaneManager {
 
     /// Spawn a new pane of the given type and return its assigned ID.
     ///
-    /// - `Claude` panes run `claude --output-format stream-json --verbose`.
+    /// - `Claude` panes run the interactive `claude` TUI (the previous
+    ///   `--output-format stream-json` flags are print-mode only and broke
+    ///   interactive use).
+    /// - `Agent` panes run the CLI given by `command` (e.g. codex, gemini).
     /// - `Shell` panes run the shell pointed to by `COMSPEC`, falling back to
     ///   `cmd.exe`.
-    pub fn create_pane(&mut self, pane_type: PaneType, cols: u16, rows: u16) -> Result<u32, String> {
+    pub fn create_pane(
+        &mut self,
+        pane_type: PaneType,
+        command: Option<&str>,
+        extra_args: &[String],
+        cols: u16,
+        rows: u16,
+    ) -> Result<u32, String> {
         let id = self.next_id;
 
         let pty = match pane_type {
-            PaneType::Claude => Pty::spawn(
-                "claude",
-                &["--output-format", "stream-json", "--verbose"],
-                cols,
-                rows,
-            ),
+            PaneType::Claude => {
+                let mut args: Vec<String> = vec!["--dangerously-skip-permissions".into()];
+                args.extend(extra_args.iter().cloned());
+                spawn_resolved("claude", &args, cols, rows)
+            }
+            PaneType::Agent => {
+                let cmd = command.ok_or("agent pane requires a command")?;
+                spawn_resolved(cmd, extra_args, cols, rows)
+            }
             PaneType::Shell => {
                 let shell = std::env::var("COMSPEC").unwrap_or_else(|_| "cmd.exe".to_string());
                 Pty::spawn(&shell, &[], cols, rows)
@@ -180,6 +194,47 @@ impl PaneManager {
             Err(format!("pane {id} not found"))
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// Spawn helpers
+// ---------------------------------------------------------------------------
+
+/// Quote a command-line component if it contains spaces.
+fn quote(s: &str) -> String {
+    if s.contains(' ') && !s.starts_with('"') {
+        format!("\"{s}\"")
+    } else {
+        s.to_string()
+    }
+}
+
+/// Spawn a CLI by name, resolving it against PATH first. npm-installed CLIs
+/// are `.cmd` shims that CreateProcess cannot run directly, so those are
+/// wrapped in `cmd.exe /c`.
+fn spawn_resolved(cmd: &str, args: &[String], cols: u16, rows: u16) -> Result<Pty, String> {
+    let resolved = crate::agent_cli::resolve_command(cmd);
+    let (program, full_args): (String, Vec<String>) = match resolved {
+        Some(path) => {
+            let ext = path
+                .extension()
+                .map(|e| e.to_string_lossy().to_lowercase())
+                .unwrap_or_default();
+            let path_str = quote(&path.to_string_lossy());
+            if ext == "cmd" || ext == "bat" {
+                let mut a = vec!["/c".to_string(), path_str];
+                a.extend(args.iter().map(|s| quote(s)));
+                ("cmd.exe".to_string(), a)
+            } else {
+                (path_str, args.iter().map(|s| quote(s)).collect())
+            }
+        }
+        // Not found on PATH -- let CreateProcess try the bare name.
+        None => (cmd.to_string(), args.iter().map(|s| quote(s)).collect()),
+    };
+
+    let arg_refs: Vec<&str> = full_args.iter().map(String::as_str).collect();
+    Pty::spawn(&program, &arg_refs, cols, rows)
 }
 
 // ---------------------------------------------------------------------------

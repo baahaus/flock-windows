@@ -7,13 +7,17 @@ Flock Windows is the Windows companion to [Flock](https://github.com/baahaus/flo
 ## Features
 
 - **Terminal multiplexing** -- multiple Claude Code and shell panes in a tiled grid
+- **Multi-CLI agent panes** -- detects installed agent CLIs (Codex, Gemini, opencode, Aider, Goose, Amp, Copilot, Cursor Agent) and launches any of them in a pane
+- **Broadcast mode** -- Ctrl+Shift+B types into every pane at once
+- **Command palette** -- Ctrl+K for every action: new panes, themes, broadcast, find
+- **Session restore** -- your pane layout comes back on relaunch; Claude panes continue their conversation
 - **Auto-tiling layout** -- 1 pane fills the window, 2 split side-by-side, 3+ auto-grid
-- **Claude state detection** -- status bar shows what Claude is doing (thinking, writing, running, reading, waiting)
-- **Stream JSON parsing** -- parses Claude's structured output for real-time state tracking
+- **Agent state detection** -- per-pane and tab indicators show what each agent is doing (thinking, writing, running, reading, waiting)
+- **7 themes** -- the full macOS Flock theme set, from warm cream to Midnight
+- **Find in terminal** -- Ctrl+Shift+F searches the active pane's scrollback
+- **Update notices** -- the status bar tells you when a new release is out
 - **Global hotkey** -- Ctrl+` to summon/hide from anywhere
 - **System tray** -- quick access to create panes or show the window
-- **Light theme** -- clean, minimal UI
-- **Keyboard-driven** -- Ctrl+T (new Claude), Ctrl+Shift+T (new shell), Ctrl+W (close), Ctrl+Tab (cycle), Ctrl+1-9 (jump)
 
 ## Requirements
 
@@ -57,9 +61,12 @@ Tauri v2 (native window shell)
 | Shortcut | Action |
 |---|---|
 | Ctrl+` | Show/hide window (global) |
+| Ctrl+K (or Ctrl+Shift+P) | Command palette |
 | Ctrl+T | New Claude pane |
 | Ctrl+Shift+T | New shell pane |
 | Ctrl+W | Close active pane |
+| Ctrl+Shift+B | Toggle broadcast |
+| Ctrl+Shift+F | Find in terminal |
 | Ctrl+Tab | Next pane |
 | Ctrl+Shift+Tab | Previous pane |
 | Ctrl+1-9 | Jump to pane |

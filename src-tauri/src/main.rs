@@ -4,6 +4,7 @@
 mod pty;
 #[cfg(windows)]
 mod pane;
+mod agent_cli;
 mod stream_json;
 mod claude_state;
 mod tray;
@@ -20,10 +21,11 @@ mod commands {
 
     use crate::pane::{self, PaneInfo, PaneType, SharedPaneManager};
 
-    // Parse "claude" | "shell" -> PaneType
+    // Parse "claude" | "agent" | "shell" -> PaneType
     fn parse_pane_type(s: &str) -> Result<PaneType, String> {
         match s.to_lowercase().as_str() {
             "claude" => Ok(PaneType::Claude),
+            "agent" => Ok(PaneType::Agent),
             "shell" => Ok(PaneType::Shell),
             other => Err(format!("unknown pane type: {other}")),
         }
@@ -33,20 +35,24 @@ mod commands {
     #[tauri::command]
     pub fn create_pane(
         pane_type: String,
+        command: Option<String>,
+        extra_args: Option<Vec<String>>,
         cols: u16,
         rows: u16,
         manager: tauri::State<SharedPaneManager>,
         app: AppHandle,
     ) -> Result<u32, String> {
         let pt = parse_pane_type(&pane_type)?;
+        let args = extra_args.unwrap_or_default();
 
         // --- 1. Lock, create pane, grab the cloned output handle, release lock.
         let (pane_id, output_file, is_claude) = {
             let mut mgr = manager.lock().map_err(|e| e.to_string())?;
-            let id = mgr.create_pane(pt, cols, rows)?;
+            let id = mgr.create_pane(pt, command.as_deref(), &args, cols, rows)?;
             let inner = mgr.panes.get(&id).ok_or("pane vanished immediately")?;
             let file = inner.pty.try_clone_output()?;
-            let is_claude = inner.pane_type == PaneType::Claude;
+            // Agent panes get state tracking too -- spinner/error patterns are generic.
+            let is_claude = inner.pane_type != PaneType::Shell;
             (id, file, is_claude)
         };
 
@@ -163,7 +169,13 @@ mod commands {
     use crate::pane_stub::PaneInfo;
 
     #[tauri::command]
-    pub fn create_pane(_pane_type: String, _cols: u16, _rows: u16) -> Result<u32, String> {
+    pub fn create_pane(
+        _pane_type: String,
+        _command: Option<String>,
+        _extra_args: Option<Vec<String>>,
+        _cols: u16,
+        _rows: u16,
+    ) -> Result<u32, String> {
         Err("Windows only".into())
     }
 
@@ -217,6 +229,8 @@ fn main() {
             commands::write_to_pane,
             commands::resize_pane,
             commands::list_panes,
+            agent_cli::detect_agent_clis,
+            agent_cli::open_url,
         ])
         .setup(|app| {
             #[cfg(windows)]

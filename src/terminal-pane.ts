@@ -1,48 +1,80 @@
 import { Terminal } from "@xterm/xterm";
+import type { ITheme } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
+import { SearchAddon } from "@xterm/addon-search";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
-import { theme } from "./theme";
+import { isAppShortcut } from "./keys";
 
 interface PaneOutputPayload {
   id: number;
   data: number[];
 }
 
+export type PaneKind = "claude" | "agent" | "shell";
+
+export interface PaneOptions {
+  displayName: string;
+  cliId?: string;
+  accentColor?: string;
+  theme: ITheme;
+  onInput: (text: string) => void;
+}
+
 export class TerminalPane {
   readonly id: number;
-  readonly type: "claude" | "shell";
+  readonly type: PaneKind;
+  readonly cliId?: string;
+  readonly displayName: string;
+  readonly accentColor?: string;
+  readonly searchAddon: SearchAddon;
 
   container: HTMLDivElement;
-  private titleBar: HTMLDivElement;
-  private terminalContainer: HTMLDivElement;
+  private titleLabel: HTMLSpanElement;
+  private stateLabel: HTMLSpanElement;
   private terminal: Terminal;
   private fitAddon: FitAddon;
-  private encoder = new TextEncoder();
   private unlisten: UnlistenFn | null = null;
 
-  constructor(id: number, type: "claude" | "shell") {
+  constructor(id: number, type: PaneKind, opts: PaneOptions) {
     this.id = id;
     this.type = type;
+    this.cliId = opts.cliId;
+    this.displayName = opts.displayName;
+    this.accentColor = opts.accentColor;
 
     // Build DOM structure
     this.container = document.createElement("div");
     this.container.className = "pane";
     this.container.dataset.paneId = String(id);
 
-    this.titleBar = document.createElement("div");
-    this.titleBar.className = "pane-title";
-    this.titleBar.textContent = type === "claude" ? `Claude ${id}` : `Shell ${id}`;
+    const titleBar = document.createElement("div");
+    titleBar.className = "pane-title";
 
-    this.terminalContainer = document.createElement("div");
-    this.terminalContainer.className = "pane-terminal";
+    if (opts.accentColor) {
+      const dot = document.createElement("span");
+      dot.className = "pane-accent-dot";
+      dot.style.background = opts.accentColor;
+      titleBar.appendChild(dot);
+    }
 
-    this.container.appendChild(this.titleBar);
-    this.container.appendChild(this.terminalContainer);
+    this.titleLabel = document.createElement("span");
+    this.titleLabel.textContent = `${opts.displayName} ${id}`;
+    titleBar.appendChild(this.titleLabel);
+
+    this.stateLabel = document.createElement("span");
+    this.stateLabel.className = "pane-state";
+    titleBar.appendChild(this.stateLabel);
+
+    const terminalContainer = document.createElement("div");
+    terminalContainer.className = "pane-terminal";
+
+    this.container.appendChild(titleBar);
+    this.container.appendChild(terminalContainer);
 
     // Initialize xterm.js
     this.terminal = new Terminal({
-      theme: theme.terminal,
+      theme: opts.theme,
       fontFamily: "'Cascadia Code', Consolas, 'Courier New', monospace",
       fontSize: 13,
       scrollback: 10000,
@@ -51,24 +83,30 @@ export class TerminalPane {
     });
 
     this.fitAddon = new FitAddon();
+    this.searchAddon = new SearchAddon();
     this.terminal.loadAddon(this.fitAddon);
+    this.terminal.loadAddon(this.searchAddon);
 
-    // Ctrl+V: skip xterm's key handling (which would send the ^V control
-    // character to the shell) so the browser's native paste fires and xterm's
-    // paste handler receives the clipboard text. Ctrl+Shift+V already works.
     this.terminal.attachCustomKeyEventHandler((e) => {
+      // App shortcuts (new pane, close, palette, broadcast...) bubble up to
+      // the document handler instead of becoming control characters.
+      if (e.type === "keydown" && isAppShortcut(e)) {
+        return false;
+      }
+      // Ctrl+V: skip xterm's key handling (which would send the ^V control
+      // character to the shell) so the browser's native paste fires and
+      // xterm's paste handler receives the clipboard text.
       if (e.type === "keydown" && e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "v") {
         return false;
       }
       return true;
     });
 
-    this.terminal.open(this.terminalContainer);
+    this.terminal.open(terminalContainer);
 
-    // Send keystrokes to backend
+    // Route keystrokes through the manager (broadcast-aware)
     this.terminal.onData((text) => {
-      const data = Array.from(this.encoder.encode(text));
-      invoke("write_to_pane", { id: this.id, data }).catch(console.error);
+      opts.onInput(text);
     });
 
     // Listen for output from backend
@@ -79,6 +117,24 @@ export class TerminalPane {
     }).then((unlisten) => {
       this.unlisten = unlisten;
     });
+  }
+
+  setTheme(theme: ITheme): void {
+    this.terminal.options.theme = theme;
+  }
+
+  setState(label: string): void {
+    const idle = label === "Idle";
+    this.stateLabel.textContent = idle ? "" : label;
+    if (idle) {
+      delete this.container.dataset.state;
+    } else {
+      this.container.dataset.state = label;
+    }
+  }
+
+  setBroadcast(on: boolean): void {
+    this.container.classList.toggle("pane-broadcast", on);
   }
 
   fit(): void {
