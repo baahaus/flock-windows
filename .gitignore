@@ -4,3 +4,4 @@ target/
 src-tauri/gen/
 *.exe
 *.msi
+.DS_Store
