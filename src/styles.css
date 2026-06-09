@@ -16,13 +16,15 @@ body {
 
 #tab-bar {
   height: 36px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   background: #e8e8e8;
   border-bottom: 1px solid #d0d0d0;
   padding: 0 8px;
   gap: 4px;
-  -webkit-app-region: drag;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 #pane-grid {
@@ -35,6 +37,7 @@ body {
 
 #status-bar {
   height: 28px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   background: #e8e8e8;
@@ -85,6 +88,7 @@ body {
 
 /* Tab styles */
 .tab {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 6px;

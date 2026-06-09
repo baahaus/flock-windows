@@ -63,6 +63,7 @@ Tauri v2 (native window shell)
 | Ctrl+Tab | Next pane |
 | Ctrl+Shift+Tab | Previous pane |
 | Ctrl+1-9 | Jump to pane |
+| Ctrl+V / Ctrl+Shift+V | Paste |
 
 ## License
 

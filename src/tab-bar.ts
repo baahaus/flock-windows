@@ -27,7 +27,6 @@ export class TabBar {
     for (const pane of panes) {
       const tab = document.createElement("button");
       tab.className = "tab" + (pane.id === activeId ? " tab-active" : "");
-      tab.style.cssText = "-webkit-app-region: no-drag";
 
       const label = document.createElement("span");
       label.textContent = pane.type === "claude" ? `Claude ${pane.id}` : `Shell ${pane.id}`;
@@ -36,7 +35,6 @@ export class TabBar {
       closeBtn.className = "tab-close";
       closeBtn.textContent = "x";
       closeBtn.title = "Close pane";
-      closeBtn.style.cssText = "-webkit-app-region: no-drag";
 
       closeBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -57,7 +55,6 @@ export class TabBar {
     const addClaude = document.createElement("button");
     addClaude.className = "tab-add";
     addClaude.textContent = "+ Claude";
-    addClaude.style.cssText = "-webkit-app-region: no-drag";
     addClaude.addEventListener("click", () => this.callbacks.onNewClaude());
     this.element.appendChild(addClaude);
 
@@ -65,7 +62,6 @@ export class TabBar {
     const addShell = document.createElement("button");
     addShell.className = "tab-add";
     addShell.textContent = "+ Shell";
-    addShell.style.cssText = "-webkit-app-region: no-drag";
     addShell.addEventListener("click", () => this.callbacks.onNewShell());
     this.element.appendChild(addShell);
   }

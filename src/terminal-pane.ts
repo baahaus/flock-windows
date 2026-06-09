@@ -52,6 +52,17 @@ export class TerminalPane {
 
     this.fitAddon = new FitAddon();
     this.terminal.loadAddon(this.fitAddon);
+
+    // Ctrl+V: skip xterm's key handling (which would send the ^V control
+    // character to the shell) so the browser's native paste fires and xterm's
+    // paste handler receives the clipboard text. Ctrl+Shift+V already works.
+    this.terminal.attachCustomKeyEventHandler((e) => {
+      if (e.type === "keydown" && e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "v") {
+        return false;
+      }
+      return true;
+    });
+
     this.terminal.open(this.terminalContainer);
 
     // Send keystrokes to backend

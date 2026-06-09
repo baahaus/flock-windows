@@ -237,6 +237,24 @@ fn main() {
                 }
             })?;
 
+            // Disable WebView2 browser accelerator keys (Ctrl+T, Ctrl+W, Ctrl+P, ...)
+            // so they reach the app's keyboard handler instead of being consumed by
+            // the webview -- Ctrl+W was closing the entire window.
+            #[cfg(windows)]
+            if let Some(win) = app.get_webview_window("main") {
+                let _ = win.with_webview(|webview| unsafe {
+                    use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2Settings3;
+                    use windows_core::Interface;
+                    if let Ok(core) = webview.controller().CoreWebView2() {
+                        if let Ok(settings) = core.Settings() {
+                            if let Ok(s3) = settings.cast::<ICoreWebView2Settings3>() {
+                                let _ = s3.SetAreBrowserAcceleratorKeysEnabled(false.into());
+                            }
+                        }
+                    }
+                });
+            }
+
             // Set up system tray icon and menu.
             tray::setup_tray(app.handle())?;
 
